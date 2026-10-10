@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trading Priceboard</title>
+  </head>
+  <body>
+    <header>
+      <h1>📈 Trading Priceboard</h1>
+      <span id="status" class="status">connecting…</span>
+    </header>
+
+    <main>
+      <section class="board">
+        <table id="priceboard">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Last</th>
+              <th>Bid</th>
+              <th>Ask</th>
+              <th>Spread</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section class="chart-panel">
+        <div class="chart-header">
+          <h2 id="chart-title">AAPL · 1m</h2>
+        </div>
+        <div id="chart"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
