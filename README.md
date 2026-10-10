@@ -41,3 +41,4 @@ Open browser at: `http://localhost:5173`
 | **v1.1.0** | **Binary WebSocket Streaming** | Deserialize incoming WebSocket market data ticks directly from Protobuf binary array buffers (`ArrayBuffer` / `Uint8Array`) using `@bufbuild/protobuf` instead of JSON string parsing. |
 | **v1.2.0** | **Web Workers & OffscreenCanvas** | Move WebSocket ingestion and Order Book aggregation to a dedicated Web Worker thread. Render 60 FPS orderbook ladders and depth charts via `OffscreenCanvas` to guarantee zero UI stuttering during high-frequency volatility bursts. |
 | **v2.0.0** | **WASM Fast-Feed Parser** | Implement Rust/C++ compiled WebAssembly (WASM) parser inside the browser worker to process 50,000 market depth ticks/sec with zero garbage collection (GC) pauses. |
+
