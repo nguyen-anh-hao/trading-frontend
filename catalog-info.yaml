@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: trading-frontend
+  description: Browser priceboard, candlestick chart and order ticket over REST and WebSocket.
+  annotations:
+    github.com/project-slug: nguyen-anh-hao/trading-frontend
+  tags: [javascript, vite, ui]
+spec:
+  type: website
+  lifecycle: experimental
+  owner: nguyen-anh-hao
+  system: trading-exchange
+  dependsOn:
+    - component:api-gateway

@@ -1,44 +1,39 @@
-# Trading Frontend (`trading-frontend`)
+# trading-frontend
 
-> **Real-Time Web Trading Dashboard & Priceboard** built with Vue/Vite, TypeScript, and TradingView Lightweight Charts.
+## Purpose
 
----
+The browser trading station: a live priceboard, a candlestick chart and an order ticket that talk to the edge over REST and a WebSocket stream. It renders state but owns no business rules and persists nothing locally. It does not authenticate on its own; it presents an API key supplied at build time.
 
-## 1. Primary Responsibility
-The frontend renders the interactive trading station for retail users:
-- **Real-Time Priceboard:** Live Bid/Ask depth ladder and Order Book visualization.
-- **Interactive Candlestick Charting:** Streaming tick data rendered via Canvas-based `lightweight-charts`.
-- **Order Placement & Execution:** Instant trade dispatch and toast execution notifications.
+## Domain knowledge
 
----
+The chart loads up to one hundred twenty one-minute bars over REST once per symbol, then keeps them live from the stream. Ticker and trade events are more frequent than candles, so their prices are folded into a provisional one-minute bar that an authoritative candle later replaces. The provisional bar never fabricates a flat minute: if no trade happened in the new bucket and the price did not move, the previous bar is kept.
 
-## 2. Boundaries & Network
-- Connects to `api-gateway` via:
-  - **REST API:** `http://localhost:8080` (Order placement, history, balances)
-  - **WebSocket Feed:** `ws://localhost:8080/ws` (Streaming L2 depth and trades)
+The stream sends a snapshot on connect and then ticker, candle and trade messages, and the client reconnects with exponential backoff from one second up to fifteen seconds. Timestamps arrive either as seconds or nanoseconds depending on the message type, so the client normalizes them before bucketing. Only one-minute candles are charted; other intervals are ignored by the browser.
 
----
+The priceboard is driven entirely by ticker messages and never polls. Symbol history is cached per symbol for the session, so switching back and forth does not refetch. The API key is part of the WebSocket URL as well as the REST headers, which means it is visible to anyone who can inspect the page.
 
-## 3. Quick Start (Run in 1 minute)
+## Decisions and consequences
 
-```bash
-# Install dependencies
-npm install
+**WebSocket streaming instead of polling.** Prices and candles feel live and the backend sees one connection per client. The cost is connection lifecycle complexity, including reconnect, snapshot resynchronization and duplicate bars.
 
-# Run with Vite Hot-Module Replacement (HMR)
-npm run dev
-```
+**Vanilla JavaScript with Vite.** There is no framework runtime and the whole station stays small. The cost is manual DOM updates and hand-written state management for the priceboard and chart.
 
-Open browser at: `http://localhost:5173`
+**Provisional candle merged from tick and trade prices.** Charts move even when no candle event has arrived yet. The risk is temporary divergence from the authoritative bar, which is why the server candle always replaces the provisional one.
 
----
+**Build-time API key.** Configuration is a single environment variable and the demo works with no login flow. The consequence is that the key ships to the browser and cannot be treated as a secret.
 
-## 4. Engineering Roadmap (Rendering & Web Performance)
+## Operations and known limits
 
-| Version | Phase | Optimization Target & Browser Bottleneck |
-| :--- | :--- | :--- |
-| **v1.0.0** *(Current)* | **Baseline SPA** | Reactive DOM updates, Lightweight Charts canvas rendering, WebSocket connection handling. |
-| **v1.1.0** | **Binary WebSocket Streaming** | Deserialize incoming WebSocket market data ticks directly from Protobuf binary array buffers (`ArrayBuffer` / `Uint8Array`) using `@bufbuild/protobuf` instead of JSON string parsing. |
-| **v1.2.0** | **Web Workers & OffscreenCanvas** | Move WebSocket ingestion and Order Book aggregation to a dedicated Web Worker thread. Render 60 FPS orderbook ladders and depth charts via `OffscreenCanvas` to guarantee zero UI stuttering during high-frequency volatility bursts. |
-| **v2.0.0** | **WASM Fast-Feed Parser** | Implement Rust/C++ compiled WebAssembly (WASM) parser inside the browser worker to process 50,000 market depth ticks/sec with zero garbage collection (GC) pauses. |
+The edge must be running before the page is useful; the WebSocket URL is derived from the gateway URL unless explicitly overridden. The development server runs on port 5173, while the production preview runs on 4173. A CORS or authentication failure appears as a stalled priceboard with a reconnect loop rather than an explicit error banner.
 
+There is no offline cache, no persisted layout and no history older than the initial REST load plus whatever the stream delivers. The chart only accepts one-minute candles, so longer intervals require a UI change. Reconnect always starts a new snapshot, which is also the only recovery path after a long disconnect.
+
+Because the API key is embedded in the bundle, this frontend is suitable for demos and internal use, not for public deployment. Charts redraw from the in-memory cache on symbol switch, so a full page reload loses the session history and refetches it.
+
+## Future direction
+
+Business: watchlists, order history and multi-chart layouts are the obvious next features; none are implemented.
+
+Technical: binary WebSocket payloads, a Web Worker for ingestion and order-book aggregation, and offscreen canvas rendering for high-frequency updates. A WebAssembly parser is the later step for very high message rates.
+
+Boundaries: authentication should move to short-lived browser tokens issued by the edge, removing the build-time key from the bundle.
